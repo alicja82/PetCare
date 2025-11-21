@@ -1,4 +1,4 @@
-from app import db
+from extensions import db
 from datetime import datetime
 
 class VetVisit(db.Model):
@@ -14,8 +14,6 @@ class VetVisit(db.Model):
     diagnosis = db.Column(db.Text)
     treatment = db.Column(db.Text)
     medications = db.Column(db.Text)
-    cost = db.Column(db.Float)
-    next_visit = db.Column(db.DateTime)
     notes = db.Column(db.Text)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -34,8 +32,6 @@ class VetVisit(db.Model):
             'diagnosis': self.diagnosis,
             'treatment': self.treatment,
             'medications': self.medications,
-            'cost': self.cost,
-            'next_visit': self.next_visit.isoformat() if self.next_visit else None,
             'notes': self.notes,
             'created_at': self.created_at.isoformat()
         }
