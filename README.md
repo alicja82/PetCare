@@ -23,4 +23,3 @@ python app.py
 - Flask-Migrate
 - Flask-Bcrypt
 - Flask-JWT-Extended
-System opieki nad zwierzętami domowymi
