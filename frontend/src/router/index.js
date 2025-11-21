@@ -3,12 +3,19 @@ import { useAuthStore } from '../stores/auth'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Home from '../views/Home.vue'
+import Pets from '../views/Pets.vue'
 
 const routes = [
   {
     path: '/',
     name: 'Home',
     component: Home,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/pets',
+    name: 'Pets',
+    component: Pets,
     meta: { requiresAuth: true }
   },
   {

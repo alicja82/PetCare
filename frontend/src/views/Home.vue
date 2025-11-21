@@ -26,6 +26,44 @@
             </div>
           </div>
 
+          <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+              <router-link to="/pets" class="text-decoration-none">
+                <div class="feature-card card shadow border-0 h-100">
+                  <div class="card-body text-center p-4">
+                    <div class="icon-circle mb-3">
+                      <i class="bi bi-heart-fill fs-1"></i>
+                    </div>
+                    <h5 class="card-title">My Pets</h5>
+                    <p class="card-text text-muted">View and manage your pets</p>
+                  </div>
+                </div>
+              </router-link>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="feature-card card shadow border-0 h-100 opacity-50">
+                <div class="card-body text-center p-4">
+                  <div class="icon-circle mb-3">
+                    <i class="bi bi-calendar-check fs-1"></i>
+                  </div>
+                  <h5 class="card-title">Feeding Schedule</h5>
+                  <p class="card-text text-muted">Coming soon...</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="feature-card card shadow border-0 h-100 opacity-50">
+                <div class="card-body text-center p-4">
+                  <div class="icon-circle mb-3">
+                    <i class="bi bi-hospital fs-1"></i>
+                  </div>
+                  <h5 class="card-title">Vet Visits</h5>
+                  <p class="card-text text-muted">Coming soon...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="card shadow border-0">
             <div class="card-header bg-primary text-white">
               <h5 class="mb-0">Your Account Information</h5>
@@ -117,5 +155,27 @@ const formatDate = (dateString) => {
 
 .card {
   border-radius: 15px;
+}
+
+.feature-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+}
+
+.icon-circle {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50%;
 }
 </style>
