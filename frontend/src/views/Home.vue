@@ -54,15 +54,17 @@
               </router-link>
             </div>
             <div class="col-md-4 mb-3">
-              <div class="feature-card card shadow border-0 h-100 opacity-50">
-                <div class="card-body text-center p-4">
-                  <div class="icon-circle mb-3">
-                    <i class="bi bi-hospital fs-1"></i>
+              <router-link to="/visits" class="text-decoration-none">
+                <div class="feature-card card shadow border-0 h-100">
+                  <div class="card-body text-center p-4">
+                    <div class="icon-circle mb-3">
+                      <i class="bi bi-hospital fs-1"></i>
+                    </div>
+                    <h5 class="card-title">Vet Visits</h5>
+                    <p class="card-text text-muted">Track vet appointments</p>
                   </div>
-                  <h5 class="card-title">Vet Visits</h5>
-                  <p class="card-text text-muted">Coming soon...</p>
                 </div>
-              </div>
+              </router-link>
             </div>
           </div>
 

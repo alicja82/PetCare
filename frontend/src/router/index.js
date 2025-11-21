@@ -5,6 +5,7 @@ import Register from '../views/Register.vue'
 import Home from '../views/Home.vue'
 import Pets from '../views/Pets.vue'
 import Schedules from '../views/Schedules.vue'
+import Visits from '../views/Visits.vue'
 
 const routes = [
   {
@@ -23,6 +24,12 @@ const routes = [
     path: '/schedules',
     name: 'Schedules',
     component: Schedules,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/visits',
+    name: 'Visits',
+    component: Visits,
     meta: { requiresAuth: true }
   },
   {
