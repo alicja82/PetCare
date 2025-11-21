@@ -5,4 +5,4 @@ bp = Blueprint('visits', __name__, url_prefix='/api/visits')
 
 @bp.route('/', methods=['GET'])
 def get_visits():
-    return {'message': 'Visits endpoint - coming soon'}
+    return {'message': 'Visits endpoint - placeholder'}
