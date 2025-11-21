@@ -4,6 +4,7 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Home from '../views/Home.vue'
 import Pets from '../views/Pets.vue'
+import Schedules from '../views/Schedules.vue'
 
 const routes = [
   {
@@ -16,6 +17,12 @@ const routes = [
     path: '/pets',
     name: 'Pets',
     component: Pets,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/schedules',
+    name: 'Schedules',
+    component: Schedules,
     meta: { requiresAuth: true }
   },
   {
