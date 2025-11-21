@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
@@ -35,6 +35,26 @@ def create_app(config_class=Config):
         
         # Create database tables
         db.create_all()
+    
+    # Error handlers
+    @app.errorhandler(400)
+    def bad_request(error):
+        return jsonify({'error': 'Bad request', 'message': str(error)}), 400
+    
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({'error': 'Not found', 'message': 'The requested resource was not found'}), 404
+    
+    @app.errorhandler(500)
+    def internal_error(error):
+        db.session.rollback()
+        return jsonify({'error': 'Internal server error', 'message': 'An unexpected error occurred'}), 500
+    
+    @app.errorhandler(Exception)
+    def handle_exception(error):
+        # Log the error here in production
+        app.logger.error(f'Unhandled exception: {str(error)}')
+        return jsonify({'error': 'An error occurred', 'message': str(error)}), 500
     
     return app
 

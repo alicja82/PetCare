@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, time
+from utils.validators import validate_time, validate_string_length
 
 bp = Blueprint('schedules', __name__, url_prefix='/api')
 
@@ -46,6 +47,16 @@ def create_schedule(pet_id):
     # Validate required fields
     if not data.get('food_type') or not data.get('time'):
         return jsonify({'error': 'food_type and time are required'}), 400
+    
+    # Validate food_type length
+    is_valid, error = validate_string_length(data.get('food_type'), 'Food type', min_length=1, max_length=100)
+    if not is_valid:
+        return jsonify({'error': error}), 400
+    
+    # Validate time format
+    is_valid, error = validate_time(data.get('time'))
+    if not is_valid:
+        return jsonify({'error': error}), 400
     
     # Parse time (format: "HH:MM")
     try:

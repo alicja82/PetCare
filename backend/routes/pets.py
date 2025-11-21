@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
+from utils.validators import validate_age, validate_weight, validate_string_length
 import os
 
 bp = Blueprint('pets', __name__, url_prefix='/api/pets')
@@ -61,6 +62,28 @@ def create_pet():
     # Validate required fields
     if not data.get('name') or not data.get('species'):
         return jsonify({'error': 'Name and species are required'}), 400
+    
+    # Validate name length
+    is_valid, error = validate_string_length(data.get('name'), 'Name', min_length=1, max_length=100)
+    if not is_valid:
+        return jsonify({'error': error}), 400
+    
+    # Validate species length
+    is_valid, error = validate_string_length(data.get('species'), 'Species', min_length=1, max_length=50)
+    if not is_valid:
+        return jsonify({'error': error}), 400
+    
+    # Validate age if provided
+    if data.get('age'):
+        is_valid, error = validate_age(data.get('age'))
+        if not is_valid:
+            return jsonify({'error': error}), 400
+    
+    # Validate weight if provided
+    if data.get('weight'):
+        is_valid, error = validate_weight(data.get('weight'))
+        if not is_valid:
+            return jsonify({'error': error}), 400
     
     # Handle tags - convert list to comma-separated string
     tags = data.get('tags', [])
@@ -142,18 +165,30 @@ def update_pet(pet_id):
     if request.is_json:
         data = request.get_json()
     else:
-        data = request.form.to_dict()
+    data = request.get_json()
     
     # Update fields if provided
     if 'name' in data:
+        is_valid, error = validate_string_length(data['name'], 'Name', min_length=1, max_length=100)
+        if not is_valid:
+            return jsonify({'error': error}), 400
         pet.name = data['name']
     if 'species' in data:
+        is_valid, error = validate_string_length(data['species'], 'Species', min_length=1, max_length=50)
+        if not is_valid:
+            return jsonify({'error': error}), 400
         pet.species = data['species']
     if 'breed' in data:
         pet.breed = data['breed']
     if 'age' in data:
+        is_valid, error = validate_age(data['age'])
+        if not is_valid:
+            return jsonify({'error': error}), 400
         pet.age = data['age']
     if 'weight' in data:
+        is_valid, error = validate_weight(data['weight'])
+        if not is_valid:
+            return jsonify({'error': error}), 400
         pet.weight = data['weight']
     if 'notes' in data:
         pet.notes = data['notes']

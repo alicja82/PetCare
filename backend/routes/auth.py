@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from utils.validators import validate_email, validate_username, validate_password
 
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -14,6 +15,21 @@ def register():
     # Validate required fields
     if not data or not data.get('username') or not data.get('email') or not data.get('password'):
         return jsonify({'error': 'Username, email and password are required'}), 400
+    
+    # Validate username
+    is_valid, error = validate_username(data.get('username'))
+    if not is_valid:
+        return jsonify({'error': error}), 400
+    
+    # Validate email
+    is_valid, error = validate_email(data.get('email'))
+    if not is_valid:
+        return jsonify({'error': error}), 400
+    
+    # Validate password
+    is_valid, error = validate_password(data.get('password'))
+    if not is_valid:
+        return jsonify({'error': error}), 400
     
     # Check if user already exists
     if User.query.filter_by(username=data['username']).first():
