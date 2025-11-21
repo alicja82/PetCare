@@ -1,7 +1,6 @@
 """
 Authentication service - Business logic for user authentication
 """
-from app import db, bcrypt
 from models.user import User
 from flask_jwt_extended import create_access_token
 from utils.validators import validate_email, validate_username, validate_password
@@ -11,6 +10,8 @@ class AuthService:
     @staticmethod
     def register_user(data):
         """Register a new user"""
+        from app import db, bcrypt
+        
         # Validate input
         errors = AuthService._validate_registration_data(data)
         if errors:
@@ -44,6 +45,8 @@ class AuthService:
     @staticmethod
     def login_user(data):
         """Login user and return JWT token"""
+        from app import bcrypt
+        
         # Validate input
         if not data or not data.get('username') or not data.get('password'):
             return None, None, 'Username and password are required'
