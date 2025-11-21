@@ -1,89 +1,36 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from utils.validators import validate_email, validate_username, validate_password
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from services.auth_service import AuthService
 
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 @bp.route('/register', methods=['POST'])
 def register():
     """Register a new user"""
-    from app import db, bcrypt
-    from models.user import User
-    
     data = request.get_json()
     
-    # Validate required fields
-    if not data or not data.get('username') or not data.get('email') or not data.get('password'):
-        return jsonify({'error': 'Username, email and password are required'}), 400
+    user, access_token, error = AuthService.register_user(data)
     
-    # Validate username
-    is_valid, error = validate_username(data.get('username'))
-    if not is_valid:
-        return jsonify({'error': error}), 400
-    
-    # Validate email
-    is_valid, error = validate_email(data.get('email'))
-    if not is_valid:
-        return jsonify({'error': error}), 400
-    
-    # Validate password
-    is_valid, error = validate_password(data.get('password'))
-    if not is_valid:
-        return jsonify({'error': error}), 400
-    
-    # Check if user already exists
-    if User.query.filter_by(username=data['username']).first():
-        return jsonify({'error': 'Username already exists'}), 409
-    
-    if User.query.filter_by(email=data['email']).first():
-        return jsonify({'error': 'Email already exists'}), 409
-    
-    # Hash password
-    password_hash = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-    
-    # Create new user
-    new_user = User(
-        username=data['username'],
-        email=data['email'],
-        password_hash=password_hash
-    )
-    
-    db.session.add(new_user)
-    db.session.commit()
-    
-    # Create access token
-    access_token = create_access_token(identity=new_user.id)
+    if error:
+        status_code = 409 if 'already exists' in error else 400
+        return jsonify({'error': error}), status_code
     
     return jsonify({
         'message': 'User registered successfully',
-        'user': new_user.to_dict(),
+        'user': user.to_dict(),
         'access_token': access_token
     }), 201
 
 @bp.route('/login', methods=['POST'])
 def login():
     """Login user and return JWT token"""
-    from app import bcrypt
-    from models.user import User
-    
     data = request.get_json()
     
-    # Validate required fields
-    if not data or not data.get('username') or not data.get('password'):
-        return jsonify({'error': 'Username and password are required'}), 400
+    user, access_token, error = AuthService.login_user(data)
     
-    # Find user
-    user = User.query.filter_by(username=data['username']).first()
-    
-    if not user:
-        return jsonify({'error': 'Invalid username or password'}), 401
-    
-    # Check password
-    if not bcrypt.check_password_hash(user.password_hash, data['password']):
-        return jsonify({'error': 'Invalid username or password'}), 401
-    
-    # Create access token
-    access_token = create_access_token(identity=user.id)
+    if error:
+        status_code = 401 if 'Invalid' in error else 400
+        return jsonify({'error': error}), status_code
     
     return jsonify({
         'message': 'Login successful',
@@ -95,10 +42,8 @@ def login():
 @jwt_required()
 def get_current_user():
     """Get current user info from JWT token"""
-    from models.user import User
-    
     current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
+    user = AuthService.get_user_by_id(current_user_id)
     
     if not user:
         return jsonify({'error': 'User not found'}), 404

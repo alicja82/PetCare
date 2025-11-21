@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime, time
-from utils.validators import validate_time, validate_string_length
+from services.schedule_service import ScheduleService
+from services.pet_service import PetService
+from middlewares.auth_middleware import verify_schedule_owner
 
 bp = Blueprint('schedules', __name__, url_prefix='/api')
 
@@ -9,18 +10,14 @@ bp = Blueprint('schedules', __name__, url_prefix='/api')
 @jwt_required()
 def get_pet_schedule(pet_id):
     """Get all feeding schedules for a specific pet"""
-    from app import db
-    from models.pet import Pet
-    from models.feeding_schedule import FeedingSchedule
-    
     current_user_id = get_jwt_identity()
     
     # Verify pet belongs to user
-    pet = Pet.query.filter_by(id=pet_id, user_id=current_user_id).first()
+    pet = PetService.get_pet_by_id(pet_id, current_user_id)
     if not pet:
         return jsonify({'error': 'Pet not found'}), 404
     
-    schedules = FeedingSchedule.query.filter_by(pet_id=pet_id).all()
+    schedules = ScheduleService.get_pet_schedules(pet_id)
     
     return jsonify({
         'pet': pet.to_dict(),
@@ -31,125 +28,50 @@ def get_pet_schedule(pet_id):
 @jwt_required()
 def create_schedule(pet_id):
     """Create a new feeding schedule for a pet"""
-    from app import db
-    from models.pet import Pet
-    from models.feeding_schedule import FeedingSchedule
-    
     current_user_id = get_jwt_identity()
     
     # Verify pet belongs to user
-    pet = Pet.query.filter_by(id=pet_id, user_id=current_user_id).first()
+    pet = PetService.get_pet_by_id(pet_id, current_user_id)
     if not pet:
         return jsonify({'error': 'Pet not found'}), 404
     
     data = request.get_json()
     
-    # Validate required fields
-    if not data.get('food_type') or not data.get('time'):
-        return jsonify({'error': 'food_type and time are required'}), 400
+    # Create schedule using service
+    schedule, error = ScheduleService.create_schedule(pet_id, data)
     
-    # Validate food_type length
-    is_valid, error = validate_string_length(data.get('food_type'), 'Food type', min_length=1, max_length=100)
-    if not is_valid:
+    if error:
         return jsonify({'error': error}), 400
-    
-    # Validate time format
-    is_valid, error = validate_time(data.get('time'))
-    if not is_valid:
-        return jsonify({'error': error}), 400
-    
-    # Parse time (format: "HH:MM")
-    try:
-        time_str = data.get('time')
-        hour, minute = map(int, time_str.split(':'))
-        feeding_time = time(hour, minute)
-    except (ValueError, AttributeError):
-        return jsonify({'error': 'Invalid time format. Use HH:MM'}), 400
-    
-    # Create new schedule
-    new_schedule = FeedingSchedule(
-        pet_id=pet_id,
-        food_type=data.get('food_type'),
-        amount=data.get('amount'),
-        time=feeding_time,
-        frequency=data.get('frequency'),
-        notes=data.get('notes')
-    )
-    
-    db.session.add(new_schedule)
-    db.session.commit()
     
     return jsonify({
         'message': 'Feeding schedule created successfully',
-        'schedule': new_schedule.to_dict()
+        'schedule': schedule.to_dict()
     }), 201
 
 @bp.route('/schedule/<int:schedule_id>', methods=['PUT'])
 @jwt_required()
-def update_schedule(schedule_id):
+@verify_schedule_owner
+def update_schedule(schedule_id, schedule=None, pet=None):
     """Update a feeding schedule"""
-    from app import db
-    from models.pet import Pet
-    from models.feeding_schedule import FeedingSchedule
-    
-    current_user_id = get_jwt_identity()
-    
-    schedule = FeedingSchedule.query.get(schedule_id)
-    if not schedule:
-        return jsonify({'error': 'Schedule not found'}), 404
-    
-    # Verify pet belongs to user
-    pet = Pet.query.filter_by(id=schedule.pet_id, user_id=current_user_id).first()
-    if not pet:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
     data = request.get_json()
     
-    # Update fields if provided
-    if 'food_type' in data:
-        schedule.food_type = data['food_type']
-    if 'amount' in data:
-        schedule.amount = data['amount']
-    if 'time' in data:
-        try:
-            time_str = data['time']
-            hour, minute = map(int, time_str.split(':'))
-            schedule.time = time(hour, minute)
-        except (ValueError, AttributeError):
-            return jsonify({'error': 'Invalid time format. Use HH:MM'}), 400
-    if 'frequency' in data:
-        schedule.frequency = data['frequency']
-    if 'notes' in data:
-        schedule.notes = data['notes']
+    # Update schedule using service
+    updated_schedule, error = ScheduleService.update_schedule(schedule, data)
     
-    db.session.commit()
+    if error:
+        return jsonify({'error': error}), 400
     
     return jsonify({
         'message': 'Schedule updated successfully',
-        'schedule': schedule.to_dict()
+        'schedule': updated_schedule.to_dict()
     }), 200
 
 @bp.route('/schedule/<int:schedule_id>', methods=['DELETE'])
 @jwt_required()
-def delete_schedule(schedule_id):
+@verify_schedule_owner
+def delete_schedule(schedule_id, schedule=None, pet=None):
     """Delete a feeding schedule"""
-    from app import db
-    from models.pet import Pet
-    from models.feeding_schedule import FeedingSchedule
-    
-    current_user_id = get_jwt_identity()
-    
-    schedule = FeedingSchedule.query.get(schedule_id)
-    if not schedule:
-        return jsonify({'error': 'Schedule not found'}), 404
-    
-    # Verify pet belongs to user
-    pet = Pet.query.filter_by(id=schedule.pet_id, user_id=current_user_id).first()
-    if not pet:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    db.session.delete(schedule)
-    db.session.commit()
+    ScheduleService.delete_schedule(schedule)
     
     return jsonify({'message': 'Schedule deleted successfully'}), 200
 
@@ -157,18 +79,14 @@ def delete_schedule(schedule_id):
 @jwt_required()
 def get_schedules_by_day(date):
     """Get all feeding schedules for a specific day (all user's pets)"""
-    from app import db
-    from models.pet import Pet
-    from models.feeding_schedule import FeedingSchedule
-    
     current_user_id = get_jwt_identity()
     
     # Get all user's pets
-    user_pets = Pet.query.filter_by(user_id=current_user_id).all()
+    user_pets = PetService.get_user_pets(current_user_id)
     pet_ids = [pet.id for pet in user_pets]
     
     # Get all schedules for these pets
-    schedules = FeedingSchedule.query.filter(FeedingSchedule.pet_id.in_(pet_ids)).all()
+    schedules = ScheduleService.get_schedules_for_user_pets(pet_ids)
     
     # Group by pet
     schedules_by_pet = {}
@@ -191,10 +109,6 @@ def get_schedules_by_day(date):
 @jwt_required()
 def get_schedules_by_month(year, month):
     """Get all feeding schedules for a specific month (all user's pets)"""
-    from app import db
-    from models.pet import Pet
-    from models.feeding_schedule import FeedingSchedule
-    
     current_user_id = get_jwt_identity()
     
     # Validate month
@@ -202,11 +116,11 @@ def get_schedules_by_month(year, month):
         return jsonify({'error': 'Invalid month. Must be 1-12'}), 400
     
     # Get all user's pets
-    user_pets = Pet.query.filter_by(user_id=current_user_id).all()
+    user_pets = PetService.get_user_pets(current_user_id)
     pet_ids = [pet.id for pet in user_pets]
     
     # Get all schedules for these pets
-    schedules = FeedingSchedule.query.filter(FeedingSchedule.pet_id.in_(pet_ids)).all()
+    schedules = ScheduleService.get_schedules_for_user_pets(pet_ids)
     
     # Build response
     result = {

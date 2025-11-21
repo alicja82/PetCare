@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime
-from utils.validators import validate_date, validate_future_date, validate_string_length
+from services.visit_service import VisitService
+from services.pet_service import PetService
+from middlewares.auth_middleware import verify_visit_owner
 
 bp = Blueprint('visits', __name__, url_prefix='/api')
 
@@ -9,19 +10,14 @@ bp = Blueprint('visits', __name__, url_prefix='/api')
 @jwt_required()
 def get_pet_visits(pet_id):
     """Get all vet visits for a specific pet"""
-    from app import db
-    from models.pet import Pet
-    from models.vet_visit import VetVisit
-    
     current_user_id = get_jwt_identity()
     
     # Verify pet belongs to user
-    pet = Pet.query.filter_by(id=pet_id, user_id=current_user_id).first()
+    pet = PetService.get_pet_by_id(pet_id, current_user_id)
     if not pet:
         return jsonify({'error': 'Pet not found'}), 404
     
-    # Get visits sorted by date (newest first)
-    visits = VetVisit.query.filter_by(pet_id=pet_id).order_by(VetVisit.visit_date.desc()).all()
+    visits = VisitService.get_pet_visits(pet_id)
     
     return jsonify({
         'pet': pet.to_dict(),
@@ -32,78 +28,31 @@ def get_pet_visits(pet_id):
 @jwt_required()
 def create_visit(pet_id):
     """Create a new vet visit for a pet"""
-    from app import db
-    from models.pet import Pet
-    from models.vet_visit import VetVisit
-    
     current_user_id = get_jwt_identity()
     
     # Verify pet belongs to user
-    pet = Pet.query.filter_by(id=pet_id, user_id=current_user_id).first()
+    pet = PetService.get_pet_by_id(pet_id, current_user_id)
     if not pet:
         return jsonify({'error': 'Pet not found'}), 404
     
     data = request.get_json()
     
-    # Validate required fields
-    if not data.get('visit_date') or not data.get('reason'):
-        return jsonify({'error': 'visit_date and reason are required'}), 400
+    # Create visit using service
+    visit, error = VisitService.create_visit(pet_id, data)
     
-    # Validate reason length
-    is_valid, error = validate_string_length(data.get('reason'), 'Reason', min_length=1, max_length=200)
-    if not is_valid:
+    if error:
         return jsonify({'error': error}), 400
-    
-    # Parse and validate visit_date
-    is_valid, visit_date, error = validate_date(data.get('visit_date'), 'Visit date')
-    if not is_valid:
-        return jsonify({'error': error}), 400
-    
-    # Check if visit date is not in the future
-    is_valid, error = validate_future_date(visit_date, 'Visit date')
-    if not is_valid:
-        return jsonify({'error': error}), 400
-    
-    # Create new visit
-    new_visit = VetVisit(
-        pet_id=pet_id,
-        visit_date=visit_date,
-        vet_name=data.get('vet_name'),
-        clinic_name=data.get('clinic_name'),
-        reason=data.get('reason'),
-        diagnosis=data.get('diagnosis'),
-        treatment=data.get('treatment'),
-        medications=data.get('medications'),
-        notes=data.get('notes')
-    )
-    
-    db.session.add(new_visit)
-    db.session.commit()
     
     return jsonify({
         'message': 'Vet visit created successfully',
-        'visit': new_visit.to_dict()
+        'visit': visit.to_dict()
     }), 201
 
 @bp.route('/visits/<int:visit_id>', methods=['GET'])
 @jwt_required()
-def get_visit(visit_id):
+@verify_visit_owner
+def get_visit(visit_id, visit=None, pet=None):
     """Get a specific vet visit by ID"""
-    from app import db
-    from models.pet import Pet
-    from models.vet_visit import VetVisit
-    
-    current_user_id = get_jwt_identity()
-    
-    visit = VetVisit.query.get(visit_id)
-    if not visit:
-        return jsonify({'error': 'Visit not found'}), 404
-    
-    # Verify pet belongs to user
-    pet = Pet.query.filter_by(id=visit.pet_id, user_id=current_user_id).first()
-    if not pet:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
     return jsonify({
         'visit': visit.to_dict(),
         'pet': pet.to_dict()
@@ -111,74 +60,27 @@ def get_visit(visit_id):
 
 @bp.route('/visits/<int:visit_id>', methods=['PUT'])
 @jwt_required()
-def update_visit(visit_id):
+@verify_visit_owner
+def update_visit(visit_id, visit=None, pet=None):
     """Update a vet visit"""
-    from app import db
-    from models.pet import Pet
-    from models.vet_visit import VetVisit
-    
-    current_user_id = get_jwt_identity()
-    
-    visit = VetVisit.query.get(visit_id)
-    if not visit:
-        return jsonify({'error': 'Visit not found'}), 404
-    
-    # Verify pet belongs to user
-    pet = Pet.query.filter_by(id=visit.pet_id, user_id=current_user_id).first()
-    if not pet:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
     data = request.get_json()
     
-    # Update fields if provided
-    if 'visit_date' in data:
-        try:
-            visit.visit_date = datetime.fromisoformat(data['visit_date'].replace('Z', '+00:00'))
-        except (ValueError, AttributeError):
-            return jsonify({'error': 'Invalid visit_date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
+    # Update visit using service
+    updated_visit, error = VisitService.update_visit(visit, data)
     
-    if 'vet_name' in data:
-        visit.vet_name = data['vet_name']
-    if 'clinic_name' in data:
-        visit.clinic_name = data['clinic_name']
-    if 'reason' in data:
-        visit.reason = data['reason']
-    if 'diagnosis' in data:
-        visit.diagnosis = data['diagnosis']
-    if 'treatment' in data:
-        visit.treatment = data['treatment']
-    if 'medications' in data:
-        visit.medications = data['medications']
-    if 'notes' in data:
-        visit.notes = data['notes']
-    
-    db.session.commit()
+    if error:
+        return jsonify({'error': error}), 400
     
     return jsonify({
         'message': 'Visit updated successfully',
-        'visit': visit.to_dict()
+        'visit': updated_visit.to_dict()
     }), 200
 
 @bp.route('/visits/<int:visit_id>', methods=['DELETE'])
 @jwt_required()
-def delete_visit(visit_id):
+@verify_visit_owner
+def delete_visit(visit_id, visit=None, pet=None):
     """Delete a vet visit"""
-    from app import db
-    from models.pet import Pet
-    from models.vet_visit import VetVisit
-    
-    current_user_id = get_jwt_identity()
-    
-    visit = VetVisit.query.get(visit_id)
-    if not visit:
-        return jsonify({'error': 'Visit not found'}), 404
-    
-    # Verify pet belongs to user
-    pet = Pet.query.filter_by(id=visit.pet_id, user_id=current_user_id).first()
-    if not pet:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    db.session.delete(visit)
-    db.session.commit()
+    VisitService.delete_visit(visit)
     
     return jsonify({'message': 'Visit deleted successfully'}), 200
