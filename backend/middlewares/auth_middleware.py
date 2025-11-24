@@ -15,7 +15,7 @@ def verify_pet_owner(get_pet_func):
         def decorated_function(pet_id, *args, **kwargs):
             from models.pet import Pet
             
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             pet = Pet.query.filter_by(id=pet_id, user_id=current_user_id).first()
             
             if not pet:
@@ -36,7 +36,7 @@ def verify_schedule_owner(f):
         from models.pet import Pet
         from models.feeding_schedule import FeedingSchedule
         
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         schedule = FeedingSchedule.query.get(schedule_id)
         
         if not schedule:
@@ -61,7 +61,7 @@ def verify_visit_owner(f):
         from models.pet import Pet
         from models.vet_visit import VetVisit
         
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         visit = VetVisit.query.get(visit_id)
         
         if not visit:

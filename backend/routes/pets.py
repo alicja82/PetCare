@@ -9,7 +9,7 @@ bp = Blueprint('pets', __name__, url_prefix='/api/pets')
 @jwt_required()
 def get_pets():
     """Get all pets for the current user"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     pets = PetService.get_user_pets(current_user_id)
     
     return jsonify({
@@ -20,7 +20,7 @@ def get_pets():
 @jwt_required()
 def create_pet():
     """Create a new pet"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     # Handle photo upload
     photo_url = None
@@ -48,7 +48,7 @@ def create_pet():
 @jwt_required()
 def get_pet(pet_id):
     """Get a specific pet by ID"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     pet = PetService.get_pet_by_id(pet_id, current_user_id)
     
     if not pet:
@@ -60,7 +60,7 @@ def get_pet(pet_id):
 @jwt_required()
 def update_pet(pet_id):
     """Update a pet"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     pet = PetService.get_pet_by_id(pet_id, current_user_id)
     
     if not pet:
@@ -95,7 +95,7 @@ def update_pet(pet_id):
 @jwt_required()
 def delete_pet(pet_id):
     """Delete a pet"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     pet = PetService.get_pet_by_id(pet_id, current_user_id)
     
     if not pet:

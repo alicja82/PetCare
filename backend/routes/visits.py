@@ -10,7 +10,7 @@ bp = Blueprint('visits', __name__, url_prefix='/api')
 @jwt_required()
 def get_pet_visits(pet_id):
     """Get all vet visits for a specific pet"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     # Verify pet belongs to user
     pet = PetService.get_pet_by_id(pet_id, current_user_id)
@@ -28,7 +28,7 @@ def get_pet_visits(pet_id):
 @jwt_required()
 def create_visit(pet_id):
     """Create a new vet visit for a pet"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     # Verify pet belongs to user
     pet = PetService.get_pet_by_id(pet_id, current_user_id)

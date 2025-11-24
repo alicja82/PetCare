@@ -42,7 +42,7 @@ def login():
 @jwt_required()
 def get_current_user():
     """Get current user info from JWT token"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     user = AuthService.get_user_by_id(current_user_id)
     
     if not user:

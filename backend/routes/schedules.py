@@ -10,7 +10,7 @@ bp = Blueprint('schedules', __name__, url_prefix='/api')
 @jwt_required()
 def get_pet_schedule(pet_id):
     """Get all feeding schedules for a specific pet"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     # Verify pet belongs to user
     pet = PetService.get_pet_by_id(pet_id, current_user_id)
@@ -28,7 +28,7 @@ def get_pet_schedule(pet_id):
 @jwt_required()
 def create_schedule(pet_id):
     """Create a new feeding schedule for a pet"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     # Verify pet belongs to user
     pet = PetService.get_pet_by_id(pet_id, current_user_id)
@@ -79,7 +79,7 @@ def delete_schedule(schedule_id, schedule=None, pet=None):
 @jwt_required()
 def get_schedules_by_day(date):
     """Get all feeding schedules for a specific day (all user's pets)"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     # Get all user's pets
     user_pets = PetService.get_user_pets(current_user_id)
@@ -109,7 +109,7 @@ def get_schedules_by_day(date):
 @jwt_required()
 def get_schedules_by_month(year, month):
     """Get all feeding schedules for a specific month (all user's pets)"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     # Validate month
     if month < 1 or month > 12:
